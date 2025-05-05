@@ -72,61 +72,71 @@ nx.draw_networkx_edges(G, pos, G.edges, edge_color="black")
 nx.draw_networkx_edges(G, pos, bridges, edge_color="red")
 
 def dfs_articulation_points(G):
+    """
+    G: adjacency list, e.g.:
+       G[u] = list of neighbors for node u.
+       We assume G is 0- or 1-indexed consistently.
+    Returns: a list (or set) of all articulation points in G.
+    """
 
-  timer = 0
-  visited = [False for _ in range(len(G.nodes) + 1)]
-  tin = [-1 for _ in range(len(G.nodes) + 1)]
-  tout = [-1 for _ in range(len(G.nodes) + 1)]
-  tmin = [-1 for _ in range(len(G.nodes) + 1)]
-  tree_edges = []
-  articulation_points = []
+    # We'll assume nodes are labeled from 1..N if len(G.nodes) = N, or 0..N-1 if that is easier.
+    # If G.nodes is a dictionary-like structure, you might do something slightly different.
+    # But the approach is the same.
+    n = len(G.nodes)  # Number of nodes
 
-  back_edges_start = [0 for _ in range(len(G.nodes) + 1)]
-  back_edges_end = [0 for _ in range(len(G.nodes) + 1)]
+    visited = [False] * (n + 1)
+    tin = [-1] * (n + 1)
+    tmin = [-1] * (n + 1)
 
-  def dfs1(source, parent):
-    nonlocal timer
+    # We don't necessarily need tout or back_edges arrays for articulation points.
+    # We'll keep track of a global timer in a list so we can modify inside the nested function
+    timer = [0]
 
-    if visited[source]:
-      return 
-    
-    is_articulation_point = False
+    # We'll store articulation points in a set (avoid duplicates)
+    articulation_points_set = set()
 
-    tin[source] = timer
-    tmin[source] = timer
-    timer += 1
+    def dfs(u, parent):
+        visited[u] = True
+        tin[u] = timer[0]
+        tmin[u] = timer[0]
+        timer[0] += 1
 
-    visited[source] = True
+        children_count = 0  # number of children in DFS tree for root-check
+        is_articulation = False  # track if 'u' meets articulation condition (non-root case)
 
-    if parent != -1:
-      tree_edges.append((source, parent))
+        for v in G[u]:
+            if v == parent:
+                continue
 
-    num_back_edges = 0
-    num_child = 0
+            if not visited[v]:
+                children_count += 1
+                dfs(v, u)
 
-    for v in G[source]:
-      if v != parent:
-        if !visited[v]:
-            num_child += 1
-            dfs1(v, source)
-            tmin[source] = min(tmin[source], tmin[v])
+                # After DFS on 'v', update low-link (tmin) for 'u'
+                tmin[u] = min(tmin[u], tmin[v])
 
-        if tmin[v] >= tin[source]:
-          is_articulation_point = True
+                # Non-root articulation condition:
+                if parent != -1 and tmin[v] >= tin[u]:
+                    is_articulation = True
+            else:
+                # v is already visited and is not the parent => back edge
+                tmin[u] = min(tmin[u], tin[v])
 
-    if is_articulation_point:
-      articulation_points.append(source)
+        # Root articulation condition:
+        # If u is the root of this DFS (parent == -1) and it has more than one child
+        if parent == -1 and children_count > 1:
+            is_articulation = True
 
-    timer += 1
-    tout[source] = timer
-    return num_child
+        if is_articulation:
+            articulation_points_set.add(u)
 
-  for u in G.nodes:
-    if visited[u] == False:
-      if dfs1(u, -1) > 1:
-        articulation_points.append(u)
+    # Run DFS on each node that hasn't been visited yet
+    for node in G.nodes:
+        if not visited[node]:
+            dfs(node, -1)
 
-  return articulation_points
+    # Return the articulation points as a list (or you can keep as set)
+    return list(articulation_points_set)
 
 
 art_points = dfs_articulation_points(G)
