@@ -139,12 +139,20 @@ def draw_dfs_tree(G):
 
         tmp.append(edge)
 
-        nx.draw(G, pos=pos, with_labels=True, edge_color="g")
+        fix, axes = plt.subplots(1, 2, figsize=(12, 6))
+
+        ax = axes[0]
+        nx.draw_networkx(G, pos=pos, ax=ax, with_labels=True, edge_color="g")
+
+        ax = axes[1]
         tree = nx.DiGraph()
         tree.add_edges_from(tmp)
         edge_labels = nx.get_edge_attributes(tree, 't')
-        nx.draw_networkx_edges(tree, pos=pos, edge_color="r")
-        nx.draw_networkx_edge_labels(tree, pos=pos, edge_labels=edge_labels)      
+        # edge_labels[('0', '1')] = "DM2"
+        nx.draw_networkx_nodes(G, pos=pos, ax=ax, nodelist=G.nodes)
+        nx.draw_networkx_labels(G, pos=pos, ax=ax, labels={n: n for n in G.nodes})
+        nx.draw_networkx_edges(tree, pos=pos, ax=ax, edge_color="r")
+        nx.draw_networkx_edge_labels(tree, pos=pos, ax=ax, edge_labels=edge_labels)      
 
         plt.show()
 
